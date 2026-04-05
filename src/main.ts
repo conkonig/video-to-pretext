@@ -1,4 +1,6 @@
-import { startDevApp } from './dev/app'
+import { mount } from 'svelte'
+import App from './App.svelte'
+import './app.css'
 
 const app = document.querySelector<HTMLDivElement>('#app')
 
@@ -6,4 +8,4 @@ if (app === null) {
   throw new Error('app root not found')
 }
 
-void startDevApp(app)
+mount(App, { target: app })

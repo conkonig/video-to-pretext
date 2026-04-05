@@ -3,6 +3,11 @@ declare module '*.css?inline' {
   const content: string
   export default content
 }
+declare module '*.svelte' {
+  import type { Component } from 'svelte'
+  const component: Component<any>
+  export default component
+}
 declare module '*.ttf' {
   const src: string
   export default src
