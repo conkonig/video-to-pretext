@@ -1,0 +1,16 @@
+{
+  "text": "",
+  "videoSrc": "",
+  "columns": 118,
+  "fontSize": 13,
+  "lineHeight": 16,
+  "textScrollSpeed": 1,
+  "threshold": 0.18,
+  "contrast": 1.35,
+  "gamma": 0.9,
+  "invert": false,
+  "colorMode": "video",
+  "textColor": "#f8f3df",
+  "backgroundColor": "#101216",
+  "fontFamily": "Matrix Code NFI"
+}

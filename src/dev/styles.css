@@ -5,7 +5,7 @@
     radial-gradient(circle at top left, rgba(255, 139, 94, 0.18), transparent 28%),
     radial-gradient(circle at top right, rgba(255, 220, 186, 0.08), transparent 26%),
     linear-gradient(160deg, #0b0d11 0%, #11141a 48%, #181b22 100%);
-  color: var(--text);
+  color: var(--text, #f6f1df);
 }
 
 * {
@@ -16,12 +16,13 @@ body {
   margin: 0;
   min-height: 100vh;
   background: transparent;
-  color: var(--text);
+  color: var(--text, #f6f1df);
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -35,7 +36,7 @@ button {
 
 .shell {
   display: grid;
-  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 390px) minmax(0, 1fr);
   gap: 24px;
   min-height: 100vh;
   padding: 24px;
@@ -73,12 +74,12 @@ button {
 .status-line,
 .field span,
 .meta-bar {
-  color: var(--muted);
+  color: #b5b2a2;
 }
 
 .eyebrow {
   margin: 0;
-  color: var(--accent-soft);
+  color: #ffd7c8;
   font-size: 0.82rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -94,13 +95,12 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--text);
 }
 
 .check-field input {
   inline-size: 18px;
   block-size: 18px;
-  accent-color: var(--accent);
+  accent-color: #ff8b5e;
 }
 
 .field.grow {
@@ -109,17 +109,22 @@ button {
 
 .field input[type="file"],
 .field textarea,
+.field select,
+.field input[type="color"],
 .slider-grid input[type="range"],
-.media-actions button {
+.media-actions button,
+.settings-actions button {
   width: 100%;
 }
 
 .field input[type="file"],
-.field textarea {
+.field textarea,
+.field select,
+.field input[type="color"] {
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
+  color: inherit;
 }
 
 .field input[type="file"] {
@@ -127,35 +132,55 @@ button {
 }
 
 .field textarea {
-  min-height: 240px;
+  min-height: 220px;
   padding: 16px;
   resize: vertical;
   line-height: 1.5;
 }
 
-.slider-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+.field select,
+.field input[type="color"] {
+  min-height: 52px;
+  padding: 12px 14px;
 }
 
+.field input[type="color"] {
+  padding: 8px;
+}
+
+.slider-grid,
+.appearance-grid,
+.settings-actions,
 .media-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
-.media-actions button {
+.slider-grid,
+.appearance-grid,
+.settings-actions,
+.media-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.media-actions button,
+.settings-actions button {
   border: none;
   border-radius: 999px;
   padding: 14px 18px;
-  background: linear-gradient(135deg, var(--accent), #ffb485);
+  background: linear-gradient(135deg, #ff8b5e, #ffb485);
   color: #120e0b;
   font-weight: 700;
 }
 
+.media-actions button.secondary,
+.settings-actions button.secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f6f1df;
+}
+
 .slider-grid input[type="range"] {
-  accent-color: var(--accent);
+  accent-color: #ff8b5e;
 }
 
 .stage-panel {
@@ -174,14 +199,12 @@ button {
 
 .status-line {
   margin: 0;
-  max-width: 280px;
+  max-width: 320px;
   text-align: right;
 }
 
 .stage-frame {
   position: relative;
-  display: grid;
-  place-items: center;
   min-height: 420px;
   overflow: hidden;
   border-radius: 24px;
@@ -189,13 +212,6 @@ button {
   background:
     radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.08), transparent 36%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.18));
-}
-
-#render-canvas {
-  display: block;
-  max-width: 100%;
-  border-radius: 16px;
-  background: #101216;
 }
 
 .meta-bar {
@@ -234,11 +250,10 @@ button {
     border-radius: 22px;
   }
 
-  .slider-grid {
+  .slider-grid,
+  .appearance-grid,
+  .settings-actions,
+  .media-actions {
     grid-template-columns: 1fr;
-  }
-
-  .stage-frame {
-    min-height: 260px;
   }
 }

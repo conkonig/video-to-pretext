@@ -3,9 +3,26 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "files": [
+    "dist",
+    "src/exports/PretextVideoSection.svelte"
+  ],
+  "main": "./dist/lib/index.js",
+  "types": "./dist/types/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/src/index.d.ts",
+      "default": "./dist/lib/index.js"
+    },
+    "./server": {
+      "types": "./dist/types/src/server/index.d.ts",
+      "default": "./dist/lib/server.js"
+    },
+    "./svelte": "./src/exports/PretextVideoSection.svelte"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && vite build -c vite.lib.config.ts && tsc -p tsconfig.lib.json",
     "preview": "vite preview"
   },
   "keywords": [],
@@ -13,8 +30,14 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@chenglou/pretext": "^0.0.4",
+    "@chenglou/pretext": "^0.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
     "typescript": "^6.0.2",
     "vite": "^8.0.3"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
   }
 }
