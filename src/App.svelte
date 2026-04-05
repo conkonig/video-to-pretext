@@ -155,6 +155,7 @@
     bind:this={stagePanel}
     {settings}
     {videoSrc}
+    autoplay={settings.autoplay}
     muted={playerStatus.muted}
     statusLine={statusLine}
     onStatusChange={handlePlayerStatus}

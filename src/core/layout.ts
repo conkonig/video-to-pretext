@@ -26,14 +26,22 @@ export function selectVisibleLines(
   visibleRows: number,
   currentTime: number,
   duration: number,
+  scrollEnabled: boolean,
   scrollSpeed: number,
 ): string[] {
   if (lines.length <= visibleRows) return lines
+  if (!scrollEnabled || scrollSpeed <= 0) {
+    return lines.slice(0, visibleRows)
+  }
+
   const progress = duration > 0 ? currentTime / duration : 0
-  const adjustedProgress = Math.min(1, progress * scrollSpeed)
-  const maxOffset = Math.max(0, lines.length - visibleRows)
-  const start = Math.min(maxOffset, Math.floor(adjustedProgress * maxOffset))
-  return lines.slice(start, start + visibleRows)
+  const totalScrollableLines = lines.length
+  const loopedProgress = (progress * scrollSpeed) % 1
+  const start = Math.floor(loopedProgress * totalScrollableLines)
+
+  return Array.from({ length: visibleRows }, (_, index) => {
+    return lines[(start + index) % lines.length] ?? ''
+  })
 }
 
 export function buildCharacterGrid(

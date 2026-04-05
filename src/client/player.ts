@@ -99,6 +99,7 @@ export function createPretextVideoPlayer(
   }
   let destroyed = false
   let fontReady: Promise<void> | null = null
+  let autoplayRequested = false
 
   updateDiagnostics()
 
@@ -113,6 +114,11 @@ export function createPretextVideoPlayer(
     diagnostics.videoError = null
     void prepareLayout()
     render()
+    void ensureAutoplay()
+  })
+
+  elements.video.addEventListener('canplay', () => {
+    void ensureAutoplay()
   })
 
   elements.video.addEventListener('play', () => {
@@ -153,14 +159,9 @@ export function createPretextVideoPlayer(
       diagnostics.fallbackTone = 'warning'
     }
     await prepareLayout()
-    if (options.autoplay ?? true) {
-      try {
-        await elements.video.play()
-      } catch {
-        diagnostics.fallbackMessage = 'Autoplay was blocked before the first frame could play.'
-        diagnostics.fallbackTone = 'warning'
-        render()
-      }
+    autoplayRequested = settings.autoplay
+    if (settings.autoplay) {
+      await ensureAutoplay()
     } else {
       render()
     }
@@ -176,6 +177,7 @@ export function createPretextVideoPlayer(
 
   async function update(next: Partial<PretextVideoSettings>): Promise<void> {
     Object.assign(settings, next)
+    autoplayRequested = settings.autoplay
     elements.root.style.setProperty('--pretext-background', settings.backgroundColor)
 
     if (next.videoSrc !== undefined && next.videoSrc !== '') {
@@ -184,6 +186,9 @@ export function createPretextVideoPlayer(
 
     await prepareLayout()
     render()
+    if (settings.autoplay) {
+      await ensureAutoplay()
+    }
   }
 
   function destroy(): void {
@@ -315,6 +320,7 @@ export function createPretextVideoPlayer(
       layout.visibleRows,
       elements.video.currentTime,
       elements.video.duration,
+      settings.textScrollEnabled,
       settings.textScrollSpeed,
     )
     const grid = buildCharacterGrid(
@@ -368,6 +374,7 @@ export function createPretextVideoPlayer(
 
   function setVideoSource(videoSrc: string): void {
     if (elements.video.src === videoSrc) return
+    autoplayRequested = settings.autoplay
     diagnostics.resolvedVideoSrc = videoSrc
     diagnostics.loadedMetadataFired = false
     diagnostics.videoError = null
@@ -376,6 +383,23 @@ export function createPretextVideoPlayer(
     elements.video.src = videoSrc
     elements.video.load()
     updateDiagnostics()
+  }
+
+  async function ensureAutoplay(): Promise<void> {
+    if (!autoplayRequested || !settings.autoplay) return
+    if (!elements.video.paused) return
+
+    try {
+      await elements.video.play()
+      diagnostics.fallbackMessage = null
+      diagnostics.fallbackTone = null
+      updateDiagnostics()
+    } catch {
+      diagnostics.fallbackMessage = 'Autoplay was requested, but the browser has not allowed playback yet.'
+      diagnostics.fallbackTone = 'warning'
+      updateDiagnostics()
+      render()
+    }
   }
 
   return {

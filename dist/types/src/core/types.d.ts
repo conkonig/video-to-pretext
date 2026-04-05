@@ -2,9 +2,11 @@ export type ColorMode = 'tint' | 'video';
 export type PretextVideoSettings = {
     text: string;
     videoSrc: string;
+    autoplay: boolean;
     columns: number;
     fontSize: number;
     lineHeight: number;
+    textScrollEnabled: boolean;
     textScrollSpeed: number;
     threshold: number;
     contrast: number;
@@ -16,7 +18,6 @@ export type PretextVideoSettings = {
     fontFamily: string;
 };
 export type PretextVideoMountOptions = Partial<PretextVideoSettings> & {
-    autoplay?: boolean;
     loop?: boolean;
     muted?: boolean;
     className?: string;

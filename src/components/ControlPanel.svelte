@@ -77,9 +77,22 @@
       <input value={settings.lineHeight} type="range" min="11" max="28" step="1" oninput={event => patchSettings({ lineHeight: Number(event.currentTarget.value) })} />
     </label>
 
+    <label class="check-field check-field--inline">
+      <input checked={settings.textScrollEnabled} type="checkbox" onchange={event => patchSettings({ textScrollEnabled: event.currentTarget.checked })} />
+      <span>Loop scrolling</span>
+    </label>
+
     <label class="field">
       <span>Vertical flow <output>{settings.textScrollSpeed.toFixed(2)}</output></span>
-      <input value={settings.textScrollSpeed} type="range" min="0" max="3" step="0.05" oninput={event => patchSettings({ textScrollSpeed: Number(event.currentTarget.value) })} />
+      <input
+        value={settings.textScrollSpeed}
+        type="range"
+        min="0"
+        max="3"
+        step="0.05"
+        disabled={!settings.textScrollEnabled}
+        oninput={event => patchSettings({ textScrollSpeed: Number(event.currentTarget.value) })}
+      />
     </label>
 
     <label class="field">
@@ -112,6 +125,11 @@
       <input value={settings.textColor} type="color" oninput={event => patchSettings({ textColor: event.currentTarget.value })} />
     </label>
   </div>
+
+  <label class="check-field">
+    <input checked={settings.autoplay} type="checkbox" onchange={event => patchSettings({ autoplay: event.currentTarget.checked })} />
+    <span>Autoplay video</span>
+  </label>
 
   <label class="check-field">
     <input checked={settings.invert} type="checkbox" onchange={event => patchSettings({ invert: event.currentTarget.checked })} />
@@ -228,6 +246,12 @@
     display: flex;
     align-items: center;
     gap: 10px;
+  }
+
+  .check-field--inline {
+    align-self: end;
+    min-height: 74px;
+    padding-top: 26px;
   }
 
   .check-field input {
