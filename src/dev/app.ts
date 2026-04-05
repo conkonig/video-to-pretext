@@ -1,5 +1,5 @@
 import defaultSettingsJson from '../../settings.json'
-import defaultVideoUrl from '../../output.mp4'
+import defaultVideoUrl from '../../coding.mp4'
 import { defaultSettings } from '../core/defaults'
 import { resolveSettings } from '../core/settings'
 import { mount } from '../client'
@@ -343,6 +343,7 @@ function downloadSettings(settings: PretextVideoSettings): void {
   const exported = {
     ...settings,
     text: settings.text.trim(),
+    videoSrc: '',
   }
   const blob = new Blob([`${JSON.stringify(exported, null, 2)}\n`], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -357,7 +358,7 @@ function createSvelteUsageSnippet(): string {
   return `<script lang="ts">
   import PretextVideoSection from 'video-to-pretext/svelte'
   import settings from './settings.json'
-  import videoSrc from './output.mp4'
+  import videoSrc from './coding.mp4'
 </script>
 
 <PretextVideoSection settings={settings} videoSrc={videoSrc} />`

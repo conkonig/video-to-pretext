@@ -5,3 +5,17 @@ export declare function exportSvelteComponent(options: {
     componentName?: string;
 }): Promise<void>;
 export declare function createSvelteComponentSource(settings: PretextVideoSettings, componentName?: string): string;
+export declare function exportPortableSvelteBundle(options: {
+    settingsPath: string;
+    videoPath: string;
+    outDir: string;
+    componentName?: string;
+    componentFileName?: string;
+    settingsFileName?: string;
+    videoFileName?: string;
+}): Promise<void>;
+export declare function createPortableSvelteComponentSource(options: {
+    componentName?: string;
+    settingsImportPath?: string;
+    videoImportPath?: string;
+}): string;
