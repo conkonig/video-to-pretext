@@ -1,5 +1,5 @@
-import { copyFile, mkdir, writeFile } from 'node:fs/promises'
-import { basename, dirname, resolve } from 'node:path'
+import { copyFile, mkdir, readdir, writeFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
 import type { PretextVideoSettings } from '../core/types'
 import { readSettingsFile } from './settings-file'
 
@@ -62,6 +62,7 @@ export async function exportPortableSvelteBundle(options: {
   settingsPath: string
   videoPath: string
   outDir: string
+  runtimeDir?: string
   componentName?: string
   componentFileName?: string
   settingsFileName?: string
@@ -69,10 +70,12 @@ export async function exportPortableSvelteBundle(options: {
 }): Promise<void> {
   const settings = await readSettingsFile(options.settingsPath)
   const outDir = resolve(options.outDir)
+  const runtimeDir = resolve(options.runtimeDir ?? 'dist/lib')
   const componentName = options.componentName ?? 'PretextVideoSection'
   const componentFileName = options.componentFileName ?? `${componentName}.svelte`
   const settingsFileName = options.settingsFileName ?? 'settings.json'
-  const videoFileName = options.videoFileName ?? basename(options.videoPath)
+  const videoFileName = options.videoFileName ?? 'coding.mp4'
+  const portableRuntimeDir = resolve(outDir, 'runtime')
 
   const portableSettings: PretextVideoSettings = {
     ...settings,
@@ -80,14 +83,17 @@ export async function exportPortableSvelteBundle(options: {
   }
 
   await mkdir(outDir, { recursive: true })
+  await mkdir(portableRuntimeDir, { recursive: true })
   await copyFile(resolve(options.videoPath), resolve(outDir, videoFileName))
   await writeFile(resolve(outDir, settingsFileName), `${JSON.stringify(portableSettings, null, 2)}\n`, 'utf8')
+  await copyPortableRuntime(runtimeDir, portableRuntimeDir)
   await writeFile(
     resolve(outDir, componentFileName),
     createPortableSvelteComponentSource({
       componentName,
       settingsImportPath: `./${settingsFileName}`,
       videoImportPath: `./${videoFileName}`,
+      runtimeImportPath: './runtime/index.js',
     }),
     'utf8',
   )
@@ -97,16 +103,18 @@ export function createPortableSvelteComponentSource(options: {
   componentName?: string
   settingsImportPath?: string
   videoImportPath?: string
+  runtimeImportPath?: string
 }): string {
   const componentName = options.componentName ?? 'PretextVideoSection'
   const settingsImportPath = options.settingsImportPath ?? './settings.json'
   const videoImportPath = options.videoImportPath ?? './video.mp4'
+  const runtimeImportPath = options.runtimeImportPath ?? './runtime/index.js'
 
   return `<script lang="ts">
   import { onMount } from 'svelte'
   import settings from '${settingsImportPath}'
   import videoSrc from '${videoImportPath}'
-  import { mount, type PretextVideoHandle } from 'video-to-pretext'
+  import { mount } from '${runtimeImportPath}'
 
   export let className = ''
   export let autoplay = true
@@ -114,7 +122,7 @@ export function createPortableSvelteComponentSource(options: {
   export let loop = true
 
   let container: HTMLDivElement
-  let handle: PretextVideoHandle | null = null
+  let handle: { destroy(): void } | null = null
 
   onMount(() => {
     let active = true
@@ -142,5 +150,15 @@ export function createPortableSvelteComponentSource(options: {
   })
 </script>
 
-<div bind:this={container} data-component="${componentName}" />`
+<div bind:this={container} class={className} data-component="${componentName}" style="width: 100%; height: 100%;"></div>`
+}
+
+async function copyPortableRuntime(sourceDir: string, destinationDir: string): Promise<void> {
+  const entries = await readdir(sourceDir, { withFileTypes: true })
+
+  for (const entry of entries) {
+    if (!entry.isFile()) continue
+    if (entry.name === 'server.js') continue
+    await copyFile(resolve(sourceDir, entry.name), resolve(destinationDir, entry.name))
+  }
 }

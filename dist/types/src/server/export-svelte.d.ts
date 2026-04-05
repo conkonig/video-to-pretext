@@ -9,6 +9,7 @@ export declare function exportPortableSvelteBundle(options: {
     settingsPath: string;
     videoPath: string;
     outDir: string;
+    runtimeDir?: string;
     componentName?: string;
     componentFileName?: string;
     settingsFileName?: string;
@@ -18,4 +19,5 @@ export declare function createPortableSvelteComponentSource(options: {
     componentName?: string;
     settingsImportPath?: string;
     videoImportPath?: string;
+    runtimeImportPath?: string;
 }): string;

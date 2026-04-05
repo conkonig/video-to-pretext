@@ -18,6 +18,7 @@ await exportPortableSvelteBundle({
   componentName,
   componentFileName,
   settingsFileName: 'settings.json',
+  videoFileName: 'coding.mp4',
 })
 
 const usageFile = resolve(outDir, 'README.md')
@@ -30,7 +31,8 @@ Files in this folder are ready to move into your Astro/Svelte repo.
 
 - \`${componentFileName}\`
 - \`settings.json\`
-- \`${videoPath.split('/').pop()}\`
+- \`coding.mp4\`
+- \`runtime/index.js\`
 
 Example:
 
@@ -39,10 +41,12 @@ Example:
   import ${componentName} from './${componentFileName}'
 </script>
 
-<${componentName} />
+<div style="height: 100vh;">
+  <${componentName} />
+</div>
 \`\`\`
 
-This generated component expects the \`video-to-pretext\` package to be available in the consuming repo or workspace.
+This generated component is portable. Copy the whole folder, including \`runtime/\`, into your Astro/Svelte repo.
 `,
   'utf8',
 )

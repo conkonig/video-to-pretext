@@ -1,11 +1,14 @@
 .pretext-video-player {
   position: relative;
   display: grid;
-  place-items: center;
+  justify-items: center;
   width: 100%;
+  height: 100%;
   overflow: hidden;
   border-radius: 24px;
   background: var(--pretext-background, #101216);
+  color: #f3ead3;
+  min-height: 240px;
 }
 
 .pretext-video-player canvas {
@@ -17,4 +20,72 @@
 
 .pretext-video-player video {
   display: none;
+}
+
+.pretext-video-player__surface {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+}
+
+.pretext-video-player__message {
+  position: absolute;
+  inset: 16px 16px auto 16px;
+  z-index: 2;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(11, 13, 17, 0.86);
+  backdrop-filter: blur(14px);
+  font: 500 0.94rem/1.45 "SF Mono", "Monaco", "Cascadia Code", monospace;
+  white-space: pre-wrap;
+}
+
+.pretext-video-player__message[data-tone="warning"] {
+  border-color: rgba(255, 196, 107, 0.35);
+  color: #ffe3b1;
+}
+
+.pretext-video-player__message[data-tone="error"] {
+  border-color: rgba(255, 125, 125, 0.4);
+  color: #ffd2d2;
+}
+
+.pretext-video-player__diagnostics {
+  width: 100%;
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(7, 8, 11, 0.92);
+  font: 500 0.82rem/1.45 "SF Mono", "Monaco", "Cascadia Code", monospace;
+}
+
+.pretext-video-player__diagnostics-title {
+  margin: 0 0 10px;
+  color: #f7cf8f;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pretext-video-player__diagnostics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 16px;
+}
+
+.pretext-video-player__diagnostics-grid div {
+  min-width: 0;
+}
+
+.pretext-video-player__diagnostics-grid dt {
+  margin: 0;
+  color: #b8b1a2;
+}
+
+.pretext-video-player__diagnostics-grid dd {
+  margin: 2px 0 0;
+  color: #f6f1df;
+  overflow-wrap: anywhere;
 }

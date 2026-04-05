@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import settings from './settings.json'
   import videoSrc from './coding.mp4'
-  import { mount, type PretextVideoHandle } from 'video-to-pretext'
+  import { mount } from './runtime/index.js'
 
   export let className = ''
   export let autoplay = true
@@ -10,7 +10,7 @@
   export let loop = true
 
   let container: HTMLDivElement
-  let handle: PretextVideoHandle | null = null
+  let handle: { destroy(): void } | null = null
 
   onMount(() => {
     let active = true
@@ -38,4 +38,4 @@
   })
 </script>
 
-<div bind:this={container} data-component="PretextVideoSection" />
+<div bind:this={container} class={className} data-component="PretextVideoSection" style="width: 100%; height: 100%;"></div>

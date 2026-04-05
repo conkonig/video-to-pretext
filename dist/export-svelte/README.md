@@ -5,6 +5,7 @@ Files in this folder are ready to move into your Astro/Svelte repo.
 - `PretextVideoSection.svelte`
 - `settings.json`
 - `coding.mp4`
+- `runtime/index.js`
 
 Example:
 
@@ -13,7 +14,9 @@ Example:
   import PretextVideoSection from './PretextVideoSection.svelte'
 </script>
 
-<PretextVideoSection />
+<div style="height: 100vh;">
+  <PretextVideoSection />
+</div>
 ```
 
-This generated component expects the `video-to-pretext` package to be available in the consuming repo or workspace.
+This generated component is portable. Copy the whole folder, including `runtime/`, into your Astro/Svelte repo.

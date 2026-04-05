@@ -21,8 +21,33 @@ export type PretextVideoPlayer = {
 
 type PlayerElements = {
   root: HTMLDivElement
+  surface: HTMLDivElement
   canvas: HTMLCanvasElement
   video: HTMLVideoElement
+  message: HTMLDivElement
+  diagnostics: HTMLDivElement
+}
+
+type DiagnosticsState = {
+  resolvedVideoSrc: string
+  readyState: number
+  videoWidth: number
+  videoHeight: number
+  loadedMetadataFired: boolean
+  canvasWidth: number
+  canvasHeight: number
+  containerWidth: number
+  containerHeight: number
+  initialRenderRan: boolean
+  layoutLineCount: number
+  sampledFieldHasAlpha: boolean
+  currentTime: number
+  duration: number
+  paused: boolean
+  renderLoopActive: boolean
+  videoError: string | null
+  fallbackMessage: string | null
+  fallbackTone: 'warning' | 'error' | null
 }
 
 export function createPretextVideoPlayer(
@@ -42,6 +67,27 @@ export function createPretextVideoPlayer(
   const resizeObserver = new ResizeObserver(() => {
     void prepareLayout()
   })
+  const diagnostics: DiagnosticsState = {
+    resolvedVideoSrc: settings.videoSrc,
+    readyState: 0,
+    videoWidth: 0,
+    videoHeight: 0,
+    loadedMetadataFired: false,
+    canvasWidth: 0,
+    canvasHeight: 0,
+    containerWidth: 0,
+    containerHeight: 0,
+    initialRenderRan: false,
+    layoutLineCount: 0,
+    sampledFieldHasAlpha: false,
+    currentTime: 0,
+    duration: 0,
+    paused: true,
+    renderLoopActive: false,
+    videoError: null,
+    fallbackMessage: 'Waiting for player mount.',
+    fallbackTone: 'warning',
+  }
 
   let rafId = 0
   let layout: LayoutSnapshot = {
@@ -54,6 +100,8 @@ export function createPretextVideoPlayer(
   let destroyed = false
   let fontReady: Promise<void> | null = null
 
+  updateDiagnostics()
+
   elements.video.playsInline = true
   elements.video.loop = options.loop ?? true
   elements.video.muted = options.muted ?? true
@@ -61,15 +109,35 @@ export function createPretextVideoPlayer(
   elements.video.preload = 'auto'
 
   elements.video.addEventListener('loadedmetadata', () => {
+    diagnostics.loadedMetadataFired = true
+    diagnostics.videoError = null
     void prepareLayout()
     render()
   })
 
   elements.video.addEventListener('play', () => {
+    diagnostics.paused = false
+    diagnostics.renderLoopActive = true
+    updateDiagnostics()
     tick()
   })
 
   elements.video.addEventListener('pause', () => {
+    diagnostics.paused = true
+    diagnostics.renderLoopActive = false
+    updateDiagnostics()
+    cancelAnimationFrame(rafId)
+  })
+
+  elements.video.addEventListener('timeupdate', () => {
+    updateDiagnostics()
+  })
+
+  elements.video.addEventListener('error', () => {
+    diagnostics.videoError = getVideoErrorMessage(elements.video)
+    diagnostics.fallbackMessage = `Video failed to load. ${diagnostics.videoError}`
+    diagnostics.fallbackTone = 'error'
+    updateDiagnostics()
     cancelAnimationFrame(rafId)
   })
 
@@ -80,17 +148,30 @@ export function createPretextVideoPlayer(
     await fontReady
     if (settings.videoSrc !== '') {
       setVideoSource(settings.videoSrc)
+    } else {
+      diagnostics.fallbackMessage = 'No video source was provided to the player.'
+      diagnostics.fallbackTone = 'warning'
     }
     await prepareLayout()
     if (options.autoplay ?? true) {
       try {
         await elements.video.play()
       } catch {
+        diagnostics.fallbackMessage = 'Autoplay was blocked before the first frame could play.'
+        diagnostics.fallbackTone = 'warning'
         render()
       }
     } else {
       render()
     }
+
+    window.setTimeout(() => {
+      if (!diagnostics.loadedMetadataFired && diagnostics.videoError === null) {
+        diagnostics.fallbackMessage = 'Metadata never loaded. Check the video import path, MIME handling, or network access.'
+        diagnostics.fallbackTone = 'warning'
+        updateDiagnostics()
+      }
+    }, 3000)
   }
 
   async function update(next: Partial<PretextVideoSettings>): Promise<void> {
@@ -135,10 +216,52 @@ export function createPretextVideoPlayer(
     return { ...settings }
   }
 
+  function syncPlaybackDiagnostics(): void {
+    syncPlaybackSnapshot(elements.video, diagnostics)
+  }
+
+  function updateDiagnostics(): void {
+    syncPlaybackDiagnostics()
+    elements.message.textContent = diagnostics.fallbackMessage ?? 'Player rendered a drawable frame.'
+    if (diagnostics.fallbackTone === null) {
+      elements.message.hidden = true
+      elements.message.removeAttribute('data-tone')
+    } else {
+      elements.message.hidden = false
+      elements.message.dataset.tone = diagnostics.fallbackTone
+    }
+
+    elements.diagnostics.innerHTML = `
+      <p class="pretext-video-player__diagnostics-title">Runtime Diagnostics</p>
+      <dl class="pretext-video-player__diagnostics-grid">
+        ${renderDiagnosticItem('resolved videoSrc', diagnostics.resolvedVideoSrc || '(empty)')}
+        ${renderDiagnosticItem('video.readyState', String(diagnostics.readyState))}
+        ${renderDiagnosticItem('video dimensions', `${diagnostics.videoWidth} x ${diagnostics.videoHeight}`)}
+        ${renderDiagnosticItem('loadedmetadata fired', formatBoolean(diagnostics.loadedMetadataFired))}
+        ${renderDiagnosticItem('canvas size', `${diagnostics.canvasWidth} x ${diagnostics.canvasHeight}`)}
+        ${renderDiagnosticItem('container size', `${diagnostics.containerWidth} x ${diagnostics.containerHeight}`)}
+        ${renderDiagnosticItem('initial render()', formatBoolean(diagnostics.initialRenderRan))}
+        ${renderDiagnosticItem('layout.lines.length', String(diagnostics.layoutLineCount))}
+        ${renderDiagnosticItem('sampled nonzero alpha', formatBoolean(diagnostics.sampledFieldHasAlpha))}
+        ${renderDiagnosticItem(
+          'playback time',
+          `${formatTime(diagnostics.currentTime)} / ${formatTime(diagnostics.duration)}`,
+        )}
+        ${renderDiagnosticItem('paused', formatBoolean(diagnostics.paused))}
+        ${renderDiagnosticItem('render loop active', formatBoolean(diagnostics.renderLoopActive))}
+        ${renderDiagnosticItem('video error', diagnostics.videoError ?? 'none')}
+      </dl>
+    `
+  }
+
   function tick(): void {
     render()
     if (!elements.video.paused && !elements.video.ended) {
+      diagnostics.renderLoopActive = true
       rafId = requestAnimationFrame(tick)
+    } else {
+      diagnostics.renderLoopActive = false
+      updateDiagnostics()
     }
   }
 
@@ -146,14 +269,45 @@ export function createPretextVideoPlayer(
     if (fontReady !== null) await fontReady
     if ('fonts' in document) await document.fonts.ready
 
-    const stageWidth = Math.max(320, Math.floor(container.clientWidth || 320))
-    const stageHeight = Math.max(240, Math.floor(stageWidth / getVideoAspect(elements.video)))
+    diagnostics.containerWidth = Math.floor(container.clientWidth || 0)
+    diagnostics.containerHeight = Math.floor(container.clientHeight || 0)
+
+    if (diagnostics.containerWidth <= 0 || diagnostics.containerHeight <= 0) {
+      diagnostics.fallbackMessage = 'Container size is zero. Give the embed a real width and height before mounting.'
+      diagnostics.fallbackTone = 'error'
+    }
+
+    const hasWidth = diagnostics.containerWidth > 0
+    const hasHeight = diagnostics.containerHeight > 0
+    const stageWidth = hasWidth ? diagnostics.containerWidth : 320
+    const stageHeight = hasHeight
+      ? diagnostics.containerHeight
+      : Math.max(240, Math.floor(stageWidth / getVideoAspect(elements.video)))
     layout = buildLayoutSnapshot(settings.text, settings, stageWidth, stageHeight)
+    diagnostics.layoutLineCount = layout.lines.length
     resizeCanvas(elements.canvas, context, layout.stageWidth, layout.stageHeight)
+    diagnostics.canvasWidth = elements.canvas.width
+    diagnostics.canvasHeight = elements.canvas.height
+    updateDiagnostics()
   }
 
   function render(): void {
-    if (layout.stageWidth === 0 || layout.stageHeight === 0 || layout.lines.length === 0) return
+    diagnostics.initialRenderRan = true
+    updateDiagnostics()
+
+    if (layout.stageWidth === 0 || layout.stageHeight === 0) {
+      diagnostics.fallbackMessage = 'Render skipped because the canvas layout is still zero-sized.'
+      diagnostics.fallbackTone = 'error'
+      updateDiagnostics()
+      return
+    }
+
+    if (layout.lines.length === 0) {
+      diagnostics.fallbackMessage = 'Render skipped because layout produced zero lines.'
+      diagnostics.fallbackTone = 'error'
+      updateDiagnostics()
+      return
+    }
 
     context.font = `${settings.fontSize}px "${settings.fontFamily}"`
     const visibleLines = selectVisibleLines(
@@ -182,6 +336,7 @@ export function createPretextVideoPlayer(
       cellHeight: settings.lineHeight,
       settings,
     })
+    diagnostics.sampledFieldHasAlpha = fieldHasDrawableAlpha(field)
 
     drawCharacterField({
       context,
@@ -192,12 +347,35 @@ export function createPretextVideoPlayer(
       settings,
       cellWidth: layout.cellWidth,
     })
+    syncPlaybackDiagnostics()
+
+    if (diagnostics.videoError !== null) {
+      diagnostics.fallbackMessage = `Video failed to load. ${diagnostics.videoError}`
+      diagnostics.fallbackTone = 'error'
+    } else if (!diagnostics.loadedMetadataFired) {
+      diagnostics.fallbackMessage = 'Waiting for loadedmetadata before the first drawable frame.'
+      diagnostics.fallbackTone = 'warning'
+    } else if (!diagnostics.sampledFieldHasAlpha) {
+      diagnostics.fallbackMessage = 'Render ran, but the sampled video field produced no nonzero alpha values.'
+      diagnostics.fallbackTone = 'warning'
+    } else {
+      diagnostics.fallbackMessage = null
+      diagnostics.fallbackTone = null
+    }
+
+    updateDiagnostics()
   }
 
   function setVideoSource(videoSrc: string): void {
     if (elements.video.src === videoSrc) return
+    diagnostics.resolvedVideoSrc = videoSrc
+    diagnostics.loadedMetadataFired = false
+    diagnostics.videoError = null
+    diagnostics.fallbackMessage = 'Loading video source.'
+    diagnostics.fallbackTone = 'warning'
     elements.video.src = videoSrc
     elements.video.load()
+    updateDiagnostics()
   }
 
   return {
@@ -217,11 +395,18 @@ export function createPretextVideoPlayer(
 function createPlayerDom(container: HTMLElement, className?: string): PlayerElements {
   const root = document.createElement('div')
   root.className = className ? `pretext-video-player ${className}` : 'pretext-video-player'
+  const surface = document.createElement('div')
+  surface.className = 'pretext-video-player__surface'
   const canvas = document.createElement('canvas')
   const video = document.createElement('video')
-  root.append(canvas, video)
+  const message = document.createElement('div')
+  message.className = 'pretext-video-player__message'
+  const diagnostics = document.createElement('div')
+  diagnostics.className = 'pretext-video-player__diagnostics'
+  surface.append(canvas, video, message)
+  root.append(surface, diagnostics)
   container.append(root)
-  return { root, canvas, video }
+  return { root, surface, canvas, video, message, diagnostics }
 }
 
 function resizeCanvas(
@@ -236,6 +421,56 @@ function resizeCanvas(
   canvas.style.width = `${stageWidth}px`
   canvas.style.height = `${stageHeight}px`
   context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
+}
+
+function fieldHasDrawableAlpha(field: Array<Array<{ alpha: number }>>): boolean {
+  for (const row of field) {
+    for (const cell of row) {
+      if (cell.alpha > 0) return true
+    }
+  }
+  return false
+}
+
+function getVideoErrorMessage(video: HTMLVideoElement): string {
+  if (video.error === null) return 'Unknown media error.'
+  switch (video.error.code) {
+    case MediaError.MEDIA_ERR_ABORTED:
+      return 'The video load was aborted.'
+    case MediaError.MEDIA_ERR_NETWORK:
+      return 'A network error interrupted the video load.'
+    case MediaError.MEDIA_ERR_DECODE:
+      return 'The browser could not decode the video.'
+    case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+      return 'The video source is not supported.'
+    default:
+      return 'Unknown media error.'
+  }
+}
+
+function syncPlaybackSnapshot(video: HTMLVideoElement, diagnostics: DiagnosticsState): void {
+  diagnostics.readyState = video.readyState
+  diagnostics.videoWidth = video.videoWidth
+  diagnostics.videoHeight = video.videoHeight
+  diagnostics.currentTime = video.currentTime
+  diagnostics.duration = video.duration
+  diagnostics.paused = video.paused
+}
+
+function formatBoolean(value: boolean): string {
+  return value ? 'yes' : 'no'
+}
+
+function renderDiagnosticItem(label: string, value: string): string {
+  return `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
 }
 
 async function loadDefaultFont(): Promise<void> {
